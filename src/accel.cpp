@@ -17,6 +17,7 @@
 */
 
 #include <nori/accel.h>
+#include <nori/octree.h>
 #include <Eigen/Geometry>
 
 NORI_NAMESPACE_BEGIN
@@ -30,6 +31,8 @@ void Accel::addMesh(Mesh *mesh) {
 
 void Accel::build() {
     /* Nothing to do here for now */
+  mOctree = new Octree(m_mesh);
+  mOctree->build();
 }
 
 bool Accel::rayIntersect(const Ray3f &ray_, Intersection &its, bool shadowRay) const {

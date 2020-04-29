@@ -21,8 +21,9 @@
 #include <nori/mesh.h>
 
 NORI_NAMESPACE_BEGIN
+class Octree;
 
-/**
+ /**
  * \brief Acceleration data structure for ray intersection queries
  *
  * The current implementation falls back to a brute force loop
@@ -68,6 +69,7 @@ public:
 private:
     Mesh         *m_mesh = nullptr; ///< Mesh (only a single one for now)
     BoundingBox3f m_bbox;           ///< Bounding box of the entire scene
+    Octree *mOctree;
 };
 
 NORI_NAMESPACE_END

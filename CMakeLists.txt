@@ -54,6 +54,7 @@ add_executable(nori
   include/nori/emitter.h
   include/nori/mesh.h
   include/nori/object.h
+  include/nori/octree.h
   include/nori/parser.h
   include/nori/proplist.h
   include/nori/ray.h
@@ -78,6 +79,7 @@ add_executable(nori
   src/mesh.cpp
   src/obj.cpp
   src/object.cpp
+  src/octree.cpp
   src/parser.cpp
   src/perspective.cpp
   src/proplist.cpp
