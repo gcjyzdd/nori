@@ -19,8 +19,9 @@ class OctreeNode {
   uint32_t mIndices[N_LEAF];
 
   // define bbox of the node
-  Point3f mBoxMin;
-  Point3f mBoxMax;
+  uint32_t mNodeIdx;  // calculate bbox based on index
+  // Point3f mBoxMin
+  // Point3f mBoxMax
 };
 
 class Octree {
@@ -33,6 +34,9 @@ class Octree {
  private:
   Mesh* mMesh;
   OctreeNode* mRootNode;
+  // define bbox of the node
+  Point3f mBoxMin;
+  Point3f mBoxMax;
 };
 
 NORI_NAMESPACE_END
