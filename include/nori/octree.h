@@ -13,9 +13,10 @@ class OctreeNode {
   OctreeNode(Octree* tree) : mRoot{tree} {}
 
  public:
-  Octree* mRoot;
+  Octree* mRoot{nullptr};
   OctreeNode* mChildren[NUM_NODE];
-  uint32_t mIndices[N_LEAF];
+  // uint32_t mIndices[N_LEAF];
+  std::vector<uint32_t> mIndices;
 
   // define bbox of the node
   // uint32_t mNodeIdx;  // calculate bbox based on index

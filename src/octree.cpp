@@ -33,7 +33,7 @@ static OctreeNode* buildNode(Octree* tree, const BoundingBox3f& bbox,
     auto ret = new OctreeNode(tree);
     ret->mBbox = bbox;
     for (int i = 0; i < indices.size(); ++i) {
-      ret->mIndices[i] = indices[i];
+      ret->mIndices.push_back(indices[i]);
     }
 
     return ret;
@@ -43,15 +43,23 @@ static OctreeNode* buildNode(Octree* tree, const BoundingBox3f& bbox,
 
   const auto& pos = tree->getMeshPtr()->getVertexPositions();
   const auto& face = tree->getMeshPtr()->getIndices();
+  auto boxes = splitBBox(bbox);
   // detect if a triangle overlaps a bbox
   for (size_t i = 0; i < indices.size(); ++i) {
     auto box = createBBox(pos.col(face(0, i)), pos.col(face(1, i)),
                           pos.col(face(2, i)));
-    auto boxes = splitBBox(bbox);
+
     for (size_t j = 0; j < N_LEAF; ++j) {
       if (boxes[j].overlaps(box)) triList[j].push_back(indices[j]);
     }
   }
+
+  OctreeNode* node = new OctreeNode(tree);
+  node->mBbox = bbox;
+  for (size_t i = 0; i < N_LEAF; ++i)
+    node->mChildren[i] = buildNode(tree, boxes[i], triList[i]);
+
+  return node;
 }
 
 Octree::Octree(Mesh* mesh) : mMesh{mesh} {}
