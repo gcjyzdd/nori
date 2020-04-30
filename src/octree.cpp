@@ -62,10 +62,17 @@ static OctreeNode* buildNode(Octree* tree, const BoundingBox3f& bbox,
   return node;
 }
 
+struct BBoxIts {
+  BBoxIts(uint32_t i, float f) : index{i}, near{f} {}
+
+  bool operator<(const BBoxIts& b) const { return near < b.near; }
+
+  uint32_t index;
+  float near;
+};
+
 void OctreeNode::traverse(Ray3f& ray, Intersection& its, uint32_t& f,
                           bool& found, bool shadowRay) const {
-  if (!mBbox.rayIntersect(ray)) return;
-
   auto mesh = mRoot->getMeshPtr();
 
   for (const auto& idx : mIndices) {
@@ -81,10 +88,18 @@ void OctreeNode::traverse(Ray3f& ray, Intersection& its, uint32_t& f,
   }
 
   if (mIndices.size() == 0) {
-    for (int i = 0; i < N_LEAF; ++i) {
-      if (mChildren[i]) {
-        mChildren[i]->traverse(ray, its, f, found, shadowRay);
+    float near, far;
+    std::vector<BBoxIts> dist;
+    dist.reserve(N_LEAF);
+    for (uint32_t i = 0; i < N_LEAF; ++i) {
+      if (mChildren[i] && mChildren[i]->mBbox.rayIntersect(ray, near, far)) {
+        dist.emplace_back(i, near);
       }
+    }
+    if (dist.size() > 1) std::sort(dist.begin(), dist.end());
+    for (const auto& it : dist) {
+      mChildren[it.index]->traverse(ray, its, f, found, shadowRay);
+      if (found) return;
     }
   }
 }
@@ -101,7 +116,8 @@ void Octree::build() {
 bool Octree::rayIntersect(Ray3f& ray, Intersection& its, uint32_t& f,
                           bool shadowRay) {
   bool found = false;
-  mRootNode->traverse(ray, its, f, found, shadowRay);
+  if (mRootNode->mBbox.rayIntersect(ray))
+    mRootNode->traverse(ray, its, f, found, shadowRay);
   return found;
 }
 
