@@ -32,8 +32,8 @@ static OctreeNode* buildNode(Octree* tree, const BoundingBox3f& bbox,
   if (indices.size() <= N_LEAF) {
     auto ret = new OctreeNode(tree);
     ret->mBbox = bbox;
-    for (int i = 0; i < indices.size(); ++i) {
-      ret->mIndices.push_back(indices[i]);
+    for (auto idx : indices) {
+      ret->mIndices.push_back(idx);
     }
 
     return ret;
@@ -45,12 +45,12 @@ static OctreeNode* buildNode(Octree* tree, const BoundingBox3f& bbox,
   const auto& face = tree->getMeshPtr()->getIndices();
   auto boxes = splitBBox(bbox);
   // detect if a triangle overlaps a bbox
-  for (size_t i = 0; i < indices.size(); ++i) {
-    auto box = createBBox(pos.col(face(0, i)), pos.col(face(1, i)),
-                          pos.col(face(2, i)));
+  for (auto idx : indices) {
+    auto box = createBBox(pos.col(face(0, idx)), pos.col(face(1, idx)),
+                          pos.col(face(2, idx)));
 
     for (size_t j = 0; j < N_LEAF; ++j) {
-      if (boxes[j].overlaps(box)) triList[j].push_back(indices[j]);
+      if (boxes[j].overlaps(box)) triList[j].push_back(idx);
     }
   }
 
@@ -62,6 +62,33 @@ static OctreeNode* buildNode(Octree* tree, const BoundingBox3f& bbox,
   return node;
 }
 
+void OctreeNode::traverse(Ray3f& ray, Intersection& its, uint32_t& f,
+                          bool& found, bool shadowRay) const {
+  if (!mBbox.rayIntersect(ray)) return;
+
+  auto mesh = mRoot->getMeshPtr();
+
+  for (const auto& idx : mIndices) {
+    float u, v, t;
+    if (mesh->rayIntersect(idx, ray, u, v, t)) {
+      if (shadowRay) return;
+      ray.maxt = its.t = t;
+      its.uv = Point2f(u, v);
+      its.mesh = mesh;
+      f = idx;
+      found = true;
+    }
+  }
+
+  if (mIndices.size() == 0) {
+    for (int i = 0; i < N_LEAF; ++i) {
+      if (mChildren[i]) {
+        mChildren[i]->traverse(ray, its, f, found, shadowRay);
+      }
+    }
+  }
+}
+
 Octree::Octree(Mesh* mesh) : mMesh{mesh} {}
 
 void Octree::build() {
@@ -71,6 +98,11 @@ void Octree::build() {
   mRootNode = buildNode(this, bbox, indices);
 }
 
-void Octree::rayIntersect(const Ray3f& ray, float& u, float& v, float& t) {}
+bool Octree::rayIntersect(Ray3f& ray, Intersection& its, uint32_t& f,
+                          bool shadowRay) {
+  bool found = false;
+  mRootNode->traverse(ray, its, f, found, shadowRay);
+  return found;
+}
 
 NORI_NAMESPACE_END

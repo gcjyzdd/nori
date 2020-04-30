@@ -42,20 +42,23 @@ bool Accel::rayIntersect(const Ray3f &ray_, Intersection &its, bool shadowRay) c
     Ray3f ray(ray_); /// Make a copy of the ray (we will need to update its '.maxt' value)
 
     /* Brute force search through all triangles */
-    for (uint32_t idx = 0; idx < m_mesh->getTriangleCount(); ++idx) {
-        float u, v, t;
-        if (m_mesh->rayIntersect(idx, ray, u, v, t)) {
-            /* An intersection was found! Can terminate
-               immediately if this is a shadow ray query */
-            if (shadowRay)
-                return true;
-            ray.maxt = its.t = t;
-            its.uv = Point2f(u, v);
-            its.mesh = m_mesh;
-            f = idx;
-            foundIntersection = true;
-        }
-    }
+    
+    foundIntersection = mOctree->rayIntersect(ray, its, f, shadowRay);
+
+    //for (uint32_t idx = 0; idx < m_mesh->getTriangleCount(); ++idx) {
+    //    float u, v, t;
+    //    if (m_mesh->rayIntersect(idx, ray, u, v, t)) {
+    //        /* An intersection was found! Can terminate
+    //           immediately if this is a shadow ray query */
+    //        if (shadowRay)
+    //            return true;
+    //        ray.maxt = its.t = t;
+    //        its.uv = Point2f(u, v);
+    //        its.mesh = m_mesh;
+    //        f = idx;
+    //        foundIntersection = true;
+    //    }
+    //}
 
     if (foundIntersection) {
         /* At this point, we now know that there is an intersection,

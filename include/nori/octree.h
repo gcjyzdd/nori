@@ -12,6 +12,9 @@ class OctreeNode {
  public:
   OctreeNode(Octree* tree) : mRoot{tree} {}
 
+  void traverse(Ray3f& ray, Intersection& its, uint32_t& f, bool& found,
+                bool shadowRay) const;
+
  public:
   Octree* mRoot{nullptr};
   OctreeNode* mChildren[NUM_NODE];
@@ -31,7 +34,7 @@ class Octree {
   Octree(Mesh* mesh);
   void build();
 
-  void rayIntersect(const Ray3f& ray, float& u, float& v, float& t);
+  bool rayIntersect(Ray3f& ray, Intersection& its, uint32_t& f, bool shadowRay);
 
   Mesh* getMeshPtr() { return mMesh; }
 
