@@ -17,7 +17,7 @@
 	<camera type="perspective">
         <!-- 3D origin, target point, and 'up' vector -->
 		<transform name="toWorld">
-            <lookat target="-0.0123771, 0.0540913, -0.239922"
+            <lookat target="0,0,0"
                     origin="-0.0315182, 0.284011, 0.7331"
                     up="0.00717446, 0.973206, -0.229822"/>
 		</transform>
