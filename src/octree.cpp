@@ -5,6 +5,7 @@
 NORI_NAMESPACE_BEGIN
 
 std::atomic<int> numIter{0};
+uint32_t OctreeNode::mCounter = 0;
 
 inline BoundingBox3f createBBox(const Point3f& p1, const Point3f& p2,
                                 const Point3f& p3) {
@@ -87,6 +88,7 @@ void OctreeNode::traverse(Ray3f& ray, Intersection& its, uint32_t& f,
     float u, v, t;
     if (mesh->rayIntersect(idx, ray, u, v, t)) {
       if (shadowRay) return;
+      if (ray.maxt < t) continue;
       ray.maxt = its.t = t;
       its.uv = Point2f(u, v);
       its.mesh = mesh;
@@ -125,9 +127,11 @@ Octree::~Octree() { std::cout << "numIter = " << numIter << "\n"; }
 
 void Octree::build() {
   auto bbox = mMesh->getBoundingBox();
+  auto augBBox =
+      BoundingBox3f(bbox.min - Point3f(1, 1, 1), bbox.max + Point3f(1, 1, 1));
   std::vector<uint32_t> indices(mMesh->getIndices().cols());
   for (size_t i = 0; i < indices.size(); ++i) indices[i] = i;
-  mRootNode = buildNode(this, 1, bbox, indices);
+  mRootNode = buildNode(this, 0, augBBox, indices);
 }
 
 bool Octree::rayIntersect(Ray3f& ray, Intersection& its, uint32_t& f,

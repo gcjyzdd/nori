@@ -11,7 +11,10 @@ static const unsigned int MAX_TREE_DEPTH = 8;
 class Octree;
 class OctreeNode {
  public:
-  OctreeNode(Octree* tree, uint32_t d = 1) : mRoot{tree}, mDepth{d} {}
+  OctreeNode(Octree* tree, uint32_t d = 1)
+      : mRoot{tree}, mDepth{d}, id{mCounter} {
+    ++mCounter;
+  }
 
   void traverse(Ray3f& ray, Intersection& its, uint32_t& f, bool& found,
                 bool shadowRay) const;
@@ -26,7 +29,10 @@ class OctreeNode {
   // uint32_t mNodeIdx;  // calculate bbox based on index
   BoundingBox3f mBbox;
 
-  uint32_t mDepth{1};
+  uint32_t mDepth{0};
+  uint32_t id{0};
+
+  static uint32_t mCounter;
 };
 
 static OctreeNode* buildNode(Octree* tree, uint32_t depth,
