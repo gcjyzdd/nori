@@ -29,8 +29,9 @@ class Octree;
  * The current implementation falls back to a brute force loop
  * through the geometry.
  */
-class Accel {
+class Accel {  
 public:
+    ~Accel();
     /**
      * \brief Register a triangle mesh for inclusion in the acceleration
      * data structure
