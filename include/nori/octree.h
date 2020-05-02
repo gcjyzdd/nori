@@ -7,7 +7,7 @@ NORI_NAMESPACE_BEGIN
 
 static const unsigned int NUM_NODE = 8;
 static const unsigned int N_LEAF = 8;  // set it to 4 causes issues! Investigate
-static const unsigned int MAX_TREE_DEPTH = 8;
+static const unsigned int MAX_TREE_DEPTH = 10;
 
 class Octree;
 class NodeVisitor;

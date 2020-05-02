@@ -9,7 +9,8 @@ uint32_t OctreeNode::mCounter = 0;
 
 inline BoundingBox3f createBBox(const Point3f& p1, const Point3f& p2,
                                 const Point3f& p3) {
-  BoundingBox3f bb(p1, p2);
+  BoundingBox3f bb(p1);
+  bb.expandBy(p2);
   bb.expandBy(p3);
   return bb;
 }
@@ -44,7 +45,7 @@ static OctreeNode* buildNode(Octree* tree, uint32_t depth,
 
     return ret;
   }
-  // uint32_t triList[NUM_NODE][NUM_NODE];
+
   std::vector<std::vector<uint32_t>> triList(NUM_NODE);
 
   const auto& pos = tree->getMeshPtr()->getVertexPositions();
@@ -113,9 +114,9 @@ void OctreeNode::traverse(Ray3f& ray, Intersection& its, uint32_t& f,
       if (found) return;
     }
 #else
-    for (uint32_t i = 0; i < NUM_NODE; ++i) {
-      if (mChildren[i] && mChildren[i]->mBbox.rayIntersect(ray))
-        mChildren[i]->traverse(ray, its, f, found, shadowRay);
+    for (auto c : mChildren) {
+      if (c && c->mBbox.rayIntersect(ray))
+        c->traverse(ray, its, f, found, shadowRay);
     }
 #endif
   }
@@ -123,8 +124,8 @@ void OctreeNode::traverse(Ray3f& ray, Intersection& its, uint32_t& f,
 
 void OctreeNode::accept(NodeVisitor& visitor) const {
   visitor.accumulateInfo(*this);
-  for (int i = 0; i < NUM_NODE; ++i) {
-    if (mChildren[i]) mChildren[i]->accept(visitor);
+  for (auto child : mChildren) {
+    if (child) child->accept(visitor);
   }
 }
 
