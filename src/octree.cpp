@@ -139,6 +139,7 @@ void NodeVisitor::accumulateInfo(const OctreeNode& node) {
 }
 
 void NodeVisitor::print() {
+  cout << "Max depth of nodes: " << depth << "\n";
   cout << "Number of interior nodes: " << innerNodes << "\n";
   cout << "Number of leaf nodes: " << leafNodes << "\n";
   cout << "Average number of triangles per leaf node: "
