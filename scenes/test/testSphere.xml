@@ -9,7 +9,7 @@
 
     <!-- Load the Stanford bunny (https://graphics.stanford.edu/data/3Dscanrep/) -->
 	<mesh type="obj">
-		<string name="filename" value="cube_radius1m.obj"/>
+		<string name="filename" value="sphere.obj"/>
 		<bsdf type="diffuse"/>
 	</mesh>
 
@@ -18,12 +18,12 @@
         <!-- 3D origin, target point, and 'up' vector -->
 		<transform name="toWorld">
             <lookat target="0,0,0"
-                    origin="-0.2315182, 0.284011, 0.7331"
+                    origin="-0.0315182, 0.284011, 6.7331"
                     up="0.00717446, 0.973206, -0.229822"/>
 		</transform>
 
 		<!-- Field of view: 30 degrees -->
-		<float name="fov" value="16"/>
+		<float name="fov" value="30"/>
 
 		<!-- 768 x 768 pixels -->
 		<integer name="width" value="768"/>
