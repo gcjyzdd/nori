@@ -1,5 +1,6 @@
 #pragma once
 #include <nori/mesh.h>
+#include <array>
 #include <vector>
 
 NORI_NAMESPACE_BEGIN
@@ -9,19 +10,23 @@ static const unsigned int N_LEAF = 8;  // set it to 4 causes issues! Investigate
 static const unsigned int MAX_TREE_DEPTH = 8;
 
 class Octree;
+class NodeVisitor;
 class OctreeNode {
  public:
   OctreeNode(Octree* tree, uint32_t d = 1)
       : mRoot{tree}, mDepth{d}, id{mCounter} {
     ++mCounter;
+    memset(&mChildren[0], 0, NUM_NODE * sizeof(OctreeNode*));
   }
 
   void traverse(Ray3f& ray, Intersection& its, uint32_t& f, bool& found,
                 bool shadowRay) const;
 
+  void accept(NodeVisitor& visitor) const;
+
  public:
   Octree* mRoot{nullptr};
-  OctreeNode* mChildren[NUM_NODE];
+  std::array<OctreeNode*, NUM_NODE> mChildren;
   // uint32_t mIndices[N_LEAF];
   std::vector<uint32_t> mIndices;
 
@@ -39,6 +44,20 @@ static OctreeNode* buildNode(Octree* tree, uint32_t depth,
                              const BoundingBox3f& bbox,
                              const std::vector<uint32_t>& indices);
 
+class NodeVisitor {
+ public:
+  NodeVisitor() {}
+
+  void accumulateInfo(const OctreeNode& node);
+
+  void print();
+
+  uint32_t depth = 0;
+  uint32_t innerNodes = 0;
+  uint32_t leafNodes = 0;
+  uint32_t numTri = 0;
+};
+
 class Octree {
  public:
   Octree(Mesh* mesh);
@@ -49,6 +68,8 @@ class Octree {
                     bool shadowRay) const;
 
   Mesh* getMeshPtr() { return mMesh; }
+
+  void printState();
 
  private:
   Mesh* mMesh;

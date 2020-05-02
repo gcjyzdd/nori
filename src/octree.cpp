@@ -1,6 +1,6 @@
 #include "nori/octree.h"
-#include <array>
 #include <atomic>
+#include <chrono>
 
 NORI_NAMESPACE_BEGIN
 
@@ -121,17 +121,55 @@ void OctreeNode::traverse(Ray3f& ray, Intersection& its, uint32_t& f,
   }
 }
 
+void OctreeNode::accept(NodeVisitor& visitor) const {
+  visitor.accumulateInfo(*this);
+  for (int i = 0; i < NUM_NODE; ++i) {
+    if (mChildren[i]) mChildren[i]->accept(visitor);
+  }
+}
+
+void NodeVisitor::accumulateInfo(const OctreeNode& node) {
+  if (node.mDepth > depth) depth = node.mDepth;
+  if (node.mIndices.size() == 0) {
+    innerNodes += 1;
+  } else {
+    leafNodes += 1;
+    numTri += node.mIndices.size();
+  }
+}
+
+void NodeVisitor::print() {
+  cout << "Number of interior nodes: " << innerNodes << "\n";
+  cout << "Number of leaf nodes: " << leafNodes << "\n";
+  cout << "Average number of triangles per leaf node: "
+       << (float)numTri / leafNodes << "\n";
+}
+
 Octree::Octree(Mesh* mesh) : mMesh{mesh} {}
 
-Octree::~Octree() { std::cout << "numIter = " << numIter << "\n"; }
+Octree::~Octree() { cout << "numIter = " << numIter << "\n"; }
 
 void Octree::build() {
   auto bbox = mMesh->getBoundingBox();
-  auto augBBox =
-      BoundingBox3f(bbox.min - Point3f(1, 1, 1), bbox.max + Point3f(1, 1, 1));
+  const float margin = 0.1F;
+  const auto delta = Point3f(margin, margin, margin);
+  auto augBBox = BoundingBox3f(bbox.min - delta, bbox.max + delta);
+
   std::vector<uint32_t> indices(mMesh->getIndices().cols());
   for (size_t i = 0; i < indices.size(); ++i) indices[i] = i;
+
+  auto begin = std::chrono::steady_clock::now();
+
   mRootNode = buildNode(this, 0, augBBox, indices);
+
+  auto end = std::chrono::steady_clock::now();
+
+  std::cout << "Construction time: "
+            << std::chrono::duration_cast<std::chrono::milliseconds>(end -
+                                                                     begin)
+                   .count()
+            << "[ms]" << std::endl;
+  printState();
 }
 
 bool Octree::rayIntersect(Ray3f& ray, Intersection& its, uint32_t& f,
@@ -140,6 +178,12 @@ bool Octree::rayIntersect(Ray3f& ray, Intersection& its, uint32_t& f,
   if (mRootNode->mBbox.rayIntersect(ray))
     mRootNode->traverse(ray, its, f, found, shadowRay);
   return found;
+}
+
+void Octree::printState() {
+  NodeVisitor v;
+  mRootNode->accept(v);
+  v.print();
 }
 
 NORI_NAMESPACE_END
