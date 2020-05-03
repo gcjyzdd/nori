@@ -53,11 +53,14 @@ float Warp::squareToUniformDiskPdf(const Point2f &p) {
 }
 
 Vector3f Warp::squareToUniformSphere(const Point2f &sample) {
-    throw NoriException("Warp::squareToUniformSphere() is not yet implemented!");
+    float th = std::acos(2 * sample(0)-1);
+    float phi = 2.F * M_PI * sample(1);
+    float s = std::sin(th);
+    return Vector3f(s * std::cos(phi), s * std::sin(phi), std::cos(th));
 }
 
 float Warp::squareToUniformSpherePdf(const Vector3f &v) {
-    throw NoriException("Warp::squareToUniformSpherePdf() is not yet implemented!");
+    return 0.25F / M_PI;
 }
 
 Vector3f Warp::squareToUniformHemisphere(const Point2f &sample) {
