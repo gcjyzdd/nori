@@ -75,11 +75,14 @@ float Warp::squareToUniformHemispherePdf(const Vector3f &v) {
 }
 
 Vector3f Warp::squareToCosineHemisphere(const Point2f &sample) {
-    throw NoriException("Warp::squareToCosineHemisphere() is not yet implemented!");
+    float th = std::asin(std::sqrt(sample(0)));
+    float phi = 2.F * M_PI * sample(1);
+    float s = std::sin(th);
+    return Vector3f(s * std::cos(phi), s * std::sin(phi), std::cos(th));
 }
 
 float Warp::squareToCosineHemispherePdf(const Vector3f &v) {
-    throw NoriException("Warp::squareToCosineHemispherePdf() is not yet implemented!");
+    return v(2) >= 0 ? v(2) * 1.F / M_PI : 0;
 }
 
 Vector3f Warp::squareToBeckmann(const Point2f &sample, float alpha) {
