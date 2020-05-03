@@ -28,7 +28,7 @@ class AoIntegrator : public Integrator {
       auto d = Warp::squareToCosineHemisphere(sample);
       auto f = Warp::squareToCosineHemispherePdf(d);
 
-      auto localDir = frame.toLocal(d);
+      auto localDir = frame.toWorld(d);
       Ray3f shadowRay(hit, localDir);
       Intersection shadowIts;
       if (scene->getAccel()->rayIntersect(shadowRay, shadowIts, true)) continue;
