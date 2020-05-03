@@ -88,7 +88,10 @@ void OctreeNode::traverse(Ray3f& ray, Intersection& its, uint32_t& f,
   for (const auto& idx : mIndices) {
     float u, v, t;
     if (mesh->rayIntersect(idx, ray, u, v, t)) {
-      if (shadowRay) return;
+      if (shadowRay) {
+        found = true;
+        return;
+      }
       if (ray.maxt < t) continue;
       ray.maxt = its.t = t;
       its.uv = Point2f(u, v);

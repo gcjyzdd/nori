@@ -63,6 +63,7 @@ bool Accel::rayIntersect(const Ray3f &ray_, Intersection &its,
   //}
 
   if (foundIntersection) {
+    if (shadowRay) return true;
     /* At this point, we now know that there is an intersection,
        and we know the triangle index of the closest such intersection.
 
