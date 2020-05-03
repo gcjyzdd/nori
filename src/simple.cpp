@@ -15,7 +15,7 @@ class SimpleIntegrator : public Integrator {
     Intersection its;
     if (!scene->rayIntersect(ray, its)) return Color3f(0.0F);
 
-    Point3f hit = ray.o + its.t * ray.d;
+    Point3f hit = its.p;
     Point3f d = mPos - hit;
     Point3f nd = d.normalized();
     Ray3f shadowRay(hit, nd);
@@ -27,8 +27,7 @@ class SimpleIntegrator : public Integrator {
 
     /* Return the component-wise absolute
        value of the shading normal as a color */
-    Normal3f n = its.shFrame.n.cwiseAbs();
-    float cosTheta = std::max(n.dot(nd), 0.F);
+    float cosTheta = std::max(its.shFrame.n.dot(nd), 0.F);
     return mColor * (cosTheta * OneOver4Pi) / d.dot(d);
   }
 

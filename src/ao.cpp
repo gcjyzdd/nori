@@ -17,23 +17,19 @@ class AoIntegrator : public Integrator {
     Intersection its;
     if (!scene->rayIntersect(ray, its)) return Color3f(0.0f);
 
-    Normal3f n = its.shFrame.n.cwiseAbs();
-    Frame frame(n);
-    Point3f hit = ray.o + its.t * ray.d;
     Point2f sample;
-
     Color3f color(0.F);
     for (int i = 0; i < NUM_SAMPLE; ++i) {
       sample = Point2f(rng.nextFloat(), rng.nextFloat());
       auto d = Warp::squareToCosineHemisphere(sample);
       auto f = Warp::squareToCosineHemispherePdf(d);
 
-      auto localDir = frame.toWorld(d);
-      Ray3f shadowRay(hit, localDir);
+      auto localDir = its.shFrame.toWorld(d);
+      Ray3f shadowRay(its.p, localDir);
       Intersection shadowIts;
       if (scene->getAccel()->rayIntersect(shadowRay, shadowIts, true)) continue;
 
-      color += std::max(localDir.dot(n), 0.F) / (M_PI * f);
+      color += std::max(localDir.dot(its.shFrame.n), 0.F) / (M_PI * f);
     }
 
     return color / NUM_SAMPLE;
