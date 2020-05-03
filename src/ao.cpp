@@ -24,12 +24,11 @@ class AoIntegrator : public Integrator {
       auto d = Warp::squareToCosineHemisphere(sample);
       auto f = Warp::squareToCosineHemispherePdf(d);
 
-      auto localDir = its.shFrame.toWorld(d);
-      Ray3f shadowRay(its.p, localDir);
+      Ray3f shadowRay(its.p, its.shFrame.toWorld(d));
       Intersection shadowIts;
       if (scene->getAccel()->rayIntersect(shadowRay, shadowIts, true)) continue;
 
-      color += std::max(localDir.dot(its.shFrame.n), 0.F) / (M_PI * f);
+      color += d(2) / (M_PI * f);
     }
 
     return color / NUM_SAMPLE;
