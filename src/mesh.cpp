@@ -22,6 +22,11 @@
 #include <nori/emitter.h>
 #include <nori/warp.h>
 #include <Eigen/Geometry>
+#include <pcg32.h>
+
+namespace {
+pcg32 rng;
+}
 
 NORI_NAMESPACE_BEGIN
 
@@ -38,6 +43,17 @@ void Mesh::activate() {
         m_bsdf = static_cast<BSDF *>(
             NoriObjectFactory::createInstance("diffuse", PropertyList()));
     }
+    uint32_t n = getTriangleCount();
+    m_dpdf.reserve(n);
+    m_area.reserve(n);
+	for (uint32_t i = 0; i < n;++i){
+      float a = surfaceArea(i);
+      m_area.push_back(a);
+      m_dpdf.append(a);
+      m_reciprocal_area += a;
+	}
+    m_dpdf.normalize();
+    m_reciprocal_area = 1.F / m_reciprocal_area;
 }
 
 float Mesh::surfaceArea(uint32_t index) const {
@@ -140,6 +156,22 @@ std::string Mesh::toString() const {
         m_bsdf ? indent(m_bsdf->toString()) : std::string("null"),
         m_emitter ? indent(m_emitter->toString()) : std::string("null")
     );
+}
+
+void Mesh::unitSquare2tri(const Point2f &sample, Point3f &p, Point3f &n,
+                          float &f) const{
+  auto idx = m_dpdf.sample(rng.nextFloat());
+  f = m_reciprocal_area;
+  auto c = m_F.col(idx);
+
+  float t = std::sqrt(sample(0));
+  float alpha = 1.F - t;
+  float beta = sample(1) * t;
+
+  p = alpha * m_V.col(c(0)) + beta * m_V.col(c(1)) +
+      (1.F - alpha - beta) * m_V.col(c(2));
+  n = alpha * m_N.col(c(0)) + beta * m_N.col(c(1)) +
+      (1.F - alpha - beta) * m_N.col(c(2));
 }
 
 std::string Intersection::toString() const {
