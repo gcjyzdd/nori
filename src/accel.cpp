@@ -21,21 +21,28 @@
 #include <Eigen/Geometry>
 
 NORI_NAMESPACE_BEGIN
+uint32_t Accel::m_counter = 0U;
+
 Accel::~Accel() { delete mOctree; }
 
 void Accel::addMesh(Mesh *mesh) {
-  if (m_mesh) {
-    m_mesh->addChild(mesh);
+  if (mOctree) {
+    mOctree->addMesh(mesh, m_counter);
   } else {
-    m_mesh = mesh;
+    mOctree = new Octree(mesh, m_counter);
+    mOctree->addMesh(mesh, m_counter);
   }
-  m_bbox = m_mesh->getBoundingBox();
+
+  ++m_counter;
 }
 
 void Accel::build() {
   /* Nothing to do here for now */
-  mOctree = new Octree(m_mesh);
   mOctree->build();
+}
+
+const BoundingBox3f &Accel::getBoundingBox() const {
+  return mOctree->getBoundingBox();
 }
 
 bool Accel::rayIntersect(const Ray3f &ray_, Intersection &its,
@@ -49,21 +56,6 @@ bool Accel::rayIntersect(const Ray3f &ray_, Intersection &its,
   /* Brute force search through all triangles */
 
   foundIntersection = mOctree->rayIntersect(ray, its, f, shadowRay);
-
-  // for (uint32_t idx = 0; idx < m_mesh->getTriangleCount(); ++idx) {
-  //    float u, v, t;
-  //    if (m_mesh->rayIntersect(idx, ray, u, v, t)) {
-  //        /* An intersection was found! Can terminate
-  //           immediately if this is a shadow ray query */
-  //        if (shadowRay)
-  //            return true;
-  //        ray.maxt = its.t = t;
-  //        its.uv = Point2f(u, v);
-  //        its.mesh = m_mesh;
-  //        f = idx;
-  //        foundIntersection = true;
-  //    }
-  //}
 
   if (foundIntersection) {
     if (shadowRay) return true;

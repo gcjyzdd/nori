@@ -2,6 +2,20 @@
 #include <atomic>
 #include <chrono>
 
+namespace {
+/**
+ * Merge two matrices
+ *
+ * */
+template <typename M>
+inline void mergeMatrix(M& A, const M& B) {
+  if (B.size() == 0) return;
+  M C(A.rows(), A.cols() + B.cols());
+  C << A, B;
+  A = C;
+}
+}  // namespace
+
 NORI_NAMESPACE_BEGIN
 
 std::atomic<int> numIter{0};
@@ -48,8 +62,8 @@ static OctreeNode* buildNode(Octree* tree, uint32_t depth,
 
   std::vector<std::vector<uint32_t>> triList(NUM_NODE);
 
-  const auto& pos = tree->getMeshPtr()->getVertexPositions();
-  const auto& face = tree->getMeshPtr()->getIndices();
+  const auto& pos = tree->getVertexPositions();
+  const auto& face = tree->getIndices();
   auto boxes = splitBBox(bbox);
   // detect if a triangle overlaps a bbox
   for (auto idx : indices) {
@@ -83,11 +97,13 @@ struct BBoxIts {
 void OctreeNode::traverse(Ray3f& ray, Intersection& its, uint32_t& f,
                           bool& found, bool shadowRay) const {
   ++numIter;
-  auto mesh = mRoot->getMeshPtr();
 
+  const auto& ids = mRoot->getIdentities();
   for (const auto& idx : mIndices) {
     float u, v, t;
-    if (mesh->rayIntersect(idx, ray, u, v, t)) {
+    auto id = ids(idx);
+    auto mesh = mRoot->m_mesh_map.at(id);
+    if (mRoot->rayIntersect(idx, ray, u, v, t)) {
       if (shadowRay) {
         found = true;
         return;
@@ -96,7 +112,7 @@ void OctreeNode::traverse(Ray3f& ray, Intersection& its, uint32_t& f,
       ray.maxt = its.t = t;
       its.uv = Point2f(u, v);
       its.mesh = mesh;
-      f = idx;
+      f = idx - mRoot->m_base_index[id];
       found = true;
     }
   }
@@ -150,17 +166,27 @@ void NodeVisitor::print() {
        << (float)numTri / leafNodes << "\n";
 }
 
-Octree::Octree(Mesh* mesh) : mMesh{mesh} {}
+Octree::Octree(Mesh* mesh, uint32_t id)
+    : m_bbox{mesh->getBoundingBox()},
+      m_V{mesh->getVertexPositions()},
+      m_N{mesh->getVertexNormals()},
+      m_UV{mesh->getVertexTexCoords()},
+      m_F{mesh->getIndices()} {
+  m_ID.resize(1, m_F.cols());
+  m_ID.array() = id;
+  m_mesh_map[id] = mesh;
+  m_base_index[id] = 0;
+}
 
 Octree::~Octree() { cout << "numIter = " << numIter << "\n"; }
 
 void Octree::build() {
-  auto bbox = mMesh->getBoundingBox();
+  auto bbox = m_bbox;
   const float margin = 0.1F;
   const auto delta = Point3f(margin, margin, margin);
   auto augBBox = BoundingBox3f(bbox.min - delta, bbox.max + delta);
 
-  std::vector<uint32_t> indices(mMesh->getIndices().cols());
+  std::vector<uint32_t> indices(m_F.cols());
   for (size_t i = 0; i < indices.size(); ++i) indices[i] = i;
 
   auto begin = std::chrono::steady_clock::now();
@@ -185,10 +211,67 @@ bool Octree::rayIntersect(Ray3f& ray, Intersection& its, uint32_t& f,
   return found;
 }
 
+void Octree::addMesh(Mesh* newMesh, uint32_t id) {
+  m_mesh_map[id] = newMesh;
+  m_base_index[id] = m_F.cols();
+
+  auto c1 = m_V.cols();
+
+  mergeMatrix(m_V, newMesh->getVertexPositions());
+  mergeMatrix(m_N, newMesh->getVertexNormals());
+  mergeMatrix(m_UV, newMesh->getVertexTexCoords());
+
+  MatrixXu F2 = newMesh->getIndices().array() + (MatrixXu::Scalar)c1;
+  mergeMatrix(m_F, F2);
+
+  MatrixXu ids(1, newMesh->getIndices().cols());
+  ids.array() = id;
+  mergeMatrix(m_ID, ids);
+
+  m_bbox.expandBy(newMesh->getBoundingBox());
+}
+
 void Octree::printState() {
   NodeVisitor v;
   mRootNode->accept(v);
   v.print();
+}
+
+bool Octree::rayIntersect(uint32_t index, const Ray3f& ray, float& u, float& v,
+                          float& t) const {
+  uint32_t i0 = m_F(0, index), i1 = m_F(1, index), i2 = m_F(2, index);
+  const Point3f p0 = m_V.col(i0), p1 = m_V.col(i1), p2 = m_V.col(i2);
+
+  /* Find vectors for two edges sharing v[0] */
+  Vector3f edge1 = p1 - p0, edge2 = p2 - p0;
+
+  /* Begin calculating determinant - also used to calculate U parameter */
+  Vector3f pvec = ray.d.cross(edge2);
+
+  /* If determinant is near zero, ray lies in plane of triangle */
+  float det = edge1.dot(pvec);
+
+  if (det > -1e-8f && det < 1e-8f) return false;
+  float inv_det = 1.0f / det;
+
+  /* Calculate distance from v[0] to ray origin */
+  Vector3f tvec = ray.o - p0;
+
+  /* Calculate U parameter and test bounds */
+  u = tvec.dot(pvec) * inv_det;
+  if (u < 0.0 || u > 1.0) return false;
+
+  /* Prepare to test V parameter */
+  Vector3f qvec = tvec.cross(edge1);
+
+  /* Calculate V parameter and test bounds */
+  v = ray.d.dot(qvec) * inv_det;
+  if (v < 0.0 || u + v > 1.0) return false;
+
+  /* Ray intersects triangle -> compute t */
+  t = edge2.dot(qvec) * inv_det;
+
+  return t >= ray.mint && t <= ray.maxt;
 }
 
 NORI_NAMESPACE_END
