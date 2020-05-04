@@ -25,8 +25,20 @@
 #include <Eigen/Geometry>
 
 namespace {
-pcg32 rng;
+/**
+ * Merge two matrices
+ *
+ * */
+template <typename M>
+inline void mergeMatrix(M &A, const M &B) {
+  if (B.size() == 0) return;
+  M C(A.rows(), A.cols() + B.cols());
+  C << A, B;
+  A = C;
 }
+
+pcg32 rng;
+}  // namespace
 
 NORI_NAMESPACE_BEGIN
 
@@ -114,7 +126,8 @@ Point3f Mesh::getCentroid(uint32_t index) const {
 }
 
 void Mesh::addChild(NoriObject *obj) {
-  switch (obj->getClassType()) {
+  auto t = obj->getClassType();
+  switch (t) {
     case EBSDF:
       if (m_bsdf)
         throw NoriException("Mesh: tried to register multiple BSDF instances!");
@@ -127,6 +140,20 @@ void Mesh::addChild(NoriObject *obj) {
         throw NoriException(
             "Mesh: tried to register multiple Emitter instances!");
       m_emitter = emitter;
+    } break;
+
+    case EMesh: {
+      auto c1 = m_V.cols();
+      auto newMesh = static_cast<Mesh *>(obj);
+      mergeMatrix(m_V, newMesh->m_V);
+      mergeMatrix(m_N, newMesh->m_N);
+      mergeMatrix(m_UV, newMesh->m_UV);
+
+      MatrixXu F2 = newMesh->m_F.array() + (MatrixXu::Scalar)c1;
+      mergeMatrix(m_F, F2);
+
+      m_bbox.expandBy(newMesh->m_bbox);
+      activate();
     } break;
 
     default:
