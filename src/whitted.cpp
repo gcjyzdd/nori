@@ -36,8 +36,7 @@ class WhittedIntegrator : public Integrator {
              << "\n";
       }
 
-      return its.mesh->getEmitter()->eval(rec) * cosThetaC /
-             (its.t * its.t * its.mesh->pdf(its.p));
+      return its.mesh->getEmitter()->eval(rec);
     }
 
     for (int i = 0; i < NUM_SAMPLE; ++i) {
@@ -64,7 +63,7 @@ class WhittedIntegrator : public Integrator {
                                 its.shFrame.toLocal(wo), EMeasure::ESolidAngle);
       auto albedo = its.mesh->getBSDF()->eval(bsdfQuery);
       Color3f Lr = albedo.array() * rec.color.array() * gxy;
-      color += Lr * cosThetaC / rec.pdf;
+      color += Lr / (rec.pdf);
     }
 
     /* Return the component-wise absolute
