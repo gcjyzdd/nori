@@ -1,6 +1,7 @@
 #include "nori/octree.h"
 #include <atomic>
 #include <chrono>
+#include <Eigen/Geometry>
 
 namespace {
 /**
