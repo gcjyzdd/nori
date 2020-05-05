@@ -25,7 +25,6 @@ class WhittedIntegrator : public Integrator {
 
     Color3f color(0.F);
 
-    float cosThetaC = its.shFrame.n.dot(-ray.d);
     EmitterQueryRecord rec;
     if (its.mesh->isEmitter()) {
       color += its.mesh->getEmitter()->eval(rec);
