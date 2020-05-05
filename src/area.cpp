@@ -1,5 +1,3 @@
-#pragma once
-
 #include <nori/emitter.h>
 
 NORI_NAMESPACE_BEGIN

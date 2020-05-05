@@ -45,7 +45,7 @@ inline std::array<BoundingBox3f, NUM_NODE> splitBBox(const BoundingBox3f& box) {
           BoundingBox3f(c + Point3f(0, -y, -z), c + Point3f(x, 0, 0))};
 }
 
-static OctreeNode* buildNode(Octree* tree, uint32_t depth,
+OctreeNode* buildNode(Octree* tree, uint32_t depth,
                              const BoundingBox3f& bbox,
                              const std::vector<uint32_t>& indices) {
   if (indices.size() == 0) return nullptr;
