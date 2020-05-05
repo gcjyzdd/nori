@@ -101,8 +101,8 @@ void OctreeNode::traverse(Ray3f& ray, Intersection& its, uint32_t& f,
   const auto& ids = mRoot->getIdentities();
   for (const auto& idx : mIndices) {
     float u, v, t;
-    auto id = ids(idx);
-    auto mesh = mRoot->m_mesh_map.at(id);
+    auto objId = ids(idx);
+    auto mesh = mRoot->m_mesh_map.at(objId);
     if (mRoot->rayIntersect(idx, ray, u, v, t)) {
       if (shadowRay) {
         found = true;
@@ -112,7 +112,7 @@ void OctreeNode::traverse(Ray3f& ray, Intersection& its, uint32_t& f,
       ray.maxt = its.t = t;
       its.uv = Point2f(u, v);
       its.mesh = mesh;
-      f = idx - mRoot->m_base_index[id];
+      f = idx - mRoot->m_base_index[objId];
       found = true;
     }
   }

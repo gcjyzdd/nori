@@ -7,6 +7,7 @@
 namespace {
 pcg32 rng;
 const float eps = 1e-3F;
+int num_print = 0;
 }  // namespace
 
 NORI_NAMESPACE_BEGIN
@@ -25,32 +26,45 @@ class WhittedIntegrator : public Integrator {
 
     Color3f color(0.F);
 
-    float cosThetaX = its.shFrame.n.dot(-ray.d);
+    float cosThetaC = its.shFrame.n.dot(-ray.d);
     EmitterQueryRecord rec;
-    if (its.mesh->isEmitter())
-      color += its.mesh->getEmitter()->eval(rec) * cosThetaX / (its.t * its.t);
+    if (its.mesh->isEmitter()) {
+      if (num_print < 3) {
+        ++num_print;
+        cout << "emitter" << cosThetaC << ", " << its.t
+             << ", color = " << its.mesh->getEmitter()->eval(rec).transpose()
+             << "\n";
+      }
+
+      return its.mesh->getEmitter()->eval(rec) * cosThetaC /
+             (its.t * its.t * its.mesh->pdf(its.p));
+    }
+
     for (int i = 0; i < NUM_SAMPLE; ++i) {
       scene->sampleEmitter(rec, rng.nextFloat(),
                            Point2f(rng.nextFloat(), rng.nextFloat()));
       Point3f seg = rec.p - its.p;
       float segLen = seg.norm();
       Point3f wo = seg.normalized();
+      if (its.shFrame.n.dot(wo) <= eps)
+        continue;  // light source below the surface
       Ray3f shadowRay(its.p, wo);
       Intersection shadowIts;
       if (!scene->rayIntersect(shadowRay, shadowIts) ||
           (segLen - shadowIts.t) > eps)
         continue;
-      float cosThetaY = shadowIts.shFrame.n.dot(-shadowRay.d);
-      if (cosThetaY < 0) continue; // backface
 
+      float gxy = its.shFrame.n.dot(wo) * shadowIts.shFrame.n.dot(-wo) /
+                  (segLen * segLen);
+      if (gxy < 0) {
+        cout << "error: r = " << ray.rowIdx << ", c = " << ray.columnIdx
+             << ", cos th = " << its.shFrame.n.dot(wo) << "\n";
+      }
       BSDFQueryRecord bsdfQuery(its.shFrame.toLocal(-ray.d),
                                 its.shFrame.toLocal(wo), EMeasure::ESolidAngle);
       auto albedo = its.mesh->getBSDF()->eval(bsdfQuery);
-      color += albedo.array() * rec.color.array() * cosThetaX * cosThetaY /
-               (rec.pdf * shadowIts.t * shadowIts.t);
-      if (color.prod() < 0) {
-        cout << "error";
-      }
+      Color3f Lr = albedo.array() * rec.color.array() * gxy;
+      color += Lr * cosThetaC / rec.pdf;
     }
 
     /* Return the component-wise absolute

@@ -54,6 +54,8 @@ static void renderBlock(const Scene *scene, Sampler *sampler, ImageBlock &block)
 
                 /* Sample a ray from the camera */
                 Ray3f ray;
+                ray.rowIdx = y + offset.y();
+                ray.columnIdx = x + offset.x();
                 Color3f value = camera->sampleRay(ray, pixelSample, apertureSample);
 
                 /* Compute the incident radiance */

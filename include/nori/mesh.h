@@ -162,6 +162,8 @@ class Mesh : public NoriObject {
 
   void sample(EmitterQueryRecord &record, const Point2f &sample);
 
+  float pdf(const Point3f &) const { return m_reciprocal_area; }
+
   /**
    * \brief Return the type of object (i.e. Mesh/BSDF/etc.)
    * provided by this instance
