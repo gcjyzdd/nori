@@ -26,6 +26,7 @@
 
 namespace {
 pcg32 rng;
+const static int MAGIC_NUMBER = 50;
 }  // namespace
 
 NORI_NAMESPACE_BEGIN
@@ -54,6 +55,7 @@ void Mesh::activate() {
   }
   m_dpdf.normalize();
   m_reciprocal_area = 1.F / m_reciprocal_area;
+  for (int i = 0; i < MAGIC_NUMBER; ++i) rng.nextFloat();
 }
 
 float Mesh::surfaceArea(uint32_t index) const {

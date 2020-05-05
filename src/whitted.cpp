@@ -7,7 +7,6 @@
 namespace {
 pcg32 rng;
 const float eps = 1e-3F;
-int num_print = 0;
 }  // namespace
 
 NORI_NAMESPACE_BEGIN
@@ -29,13 +28,6 @@ class WhittedIntegrator : public Integrator {
     float cosThetaC = its.shFrame.n.dot(-ray.d);
     EmitterQueryRecord rec;
     if (its.mesh->isEmitter()) {
-      if (num_print < 3) {
-        ++num_print;
-        cout << "emitter" << cosThetaC << ", " << its.t
-             << ", color = " << its.mesh->getEmitter()->eval(rec).transpose()
-             << "\n";
-      }
-
       color += its.mesh->getEmitter()->eval(rec);
     }
 
