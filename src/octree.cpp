@@ -169,8 +169,6 @@ void NodeVisitor::print() {
 Octree::Octree(Mesh* mesh, uint32_t id)
     : m_bbox{mesh->getBoundingBox()},
       m_V{mesh->getVertexPositions()},
-      m_N{mesh->getVertexNormals()},
-      m_UV{mesh->getVertexTexCoords()},
       m_F{mesh->getIndices()} {
   m_ID.resize(1, m_F.cols());
   m_ID.array() = id;
@@ -218,8 +216,6 @@ void Octree::addMesh(Mesh* newMesh, uint32_t id) {
   auto c1 = m_V.cols();
 
   mergeMatrix(m_V, newMesh->getVertexPositions());
-  mergeMatrix(m_N, newMesh->getVertexNormals());
-  mergeMatrix(m_UV, newMesh->getVertexTexCoords());
 
   MatrixXu F2 = newMesh->getIndices().array() + (MatrixXu::Scalar)c1;
   mergeMatrix(m_F, F2);

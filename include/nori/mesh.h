@@ -160,6 +160,8 @@ class Mesh : public NoriObject {
   void unitSquare2tri(const Point2f &sample, Point3f &p, Point3f &n,
                       float &f) const;
 
+  void sample(EmitterQueryRecord &record, const Point2f &sample);
+
   /**
    * \brief Return the type of object (i.e. Mesh/BSDF/etc.)
    * provided by this instance

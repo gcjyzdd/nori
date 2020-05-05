@@ -22,17 +22,32 @@
 
 NORI_NAMESPACE_BEGIN
 
+struct EmitterQueryRecord {
+  /// Outgoing direction (in the local frame)
+  Point3f p;
+
+  Point3f normal;
+
+  float pdf;
+
+  Color3f color;
+};
+
 /**
  * \brief Superclass of all emitters
  */
 class Emitter : public NoriObject {
-public:
+ public:
+  virtual void sample(EmitterQueryRecord& record,
+                      const Point2f& sample) const = 0;
 
-    /**
-     * \brief Return the type of object (i.e. Mesh/Emitter/etc.) 
-     * provided by this instance
-     * */
-    EClassType getClassType() const { return EEmitter; }
+  virtual Color3f eval(const EmitterQueryRecord& record) const = 0;
+
+  /**
+   * \brief Return the type of object (i.e. Mesh/Emitter/etc.)
+   * provided by this instance
+   * */
+  EClassType getClassType() const { return EEmitter; }
 };
 
 NORI_NAMESPACE_END

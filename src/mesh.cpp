@@ -137,6 +137,7 @@ void Mesh::addChild(NoriObject *obj) {
 }
 
 std::string Mesh::toString() const {
+  // cout << "center: " << m_V.array().rowwise().mean().transpose() << "\n";
   return tfm::format(
       "Mesh[\n"
       "  name = \"%s\",\n"
@@ -160,10 +161,23 @@ void Mesh::unitSquare2tri(const Point2f &sample, Point3f &p, Point3f &n,
   float alpha = 1.F - t;
   float beta = sample(1) * t;
 
-  p = alpha * m_V.col(c(0)) + beta * m_V.col(c(1)) +
-      (1.F - alpha - beta) * m_V.col(c(2));
-  n = alpha * m_N.col(c(0)) + beta * m_N.col(c(1)) +
-      (1.F - alpha - beta) * m_N.col(c(2));
+  Point3f p0 = m_V.col(c(0));
+  Point3f p1 = m_V.col(c(1));
+  Point3f p2 = m_V.col(c(2));
+
+  p = alpha * p0 + beta * p1 + (1.F - alpha - beta) * p2;
+  if (m_N.size() > 0) {
+    n = alpha * m_N.col(c(0)) + beta * m_N.col(c(1)) +
+        (1.F - alpha - beta) * m_N.col(c(2));
+  } else {
+    n = (p1 - p0).cross(p2 - p0);
+  }
+  n.normalize();
+}
+
+void Mesh::sample(EmitterQueryRecord &record, const Point2f &sample) {
+  unitSquare2tri(sample, record.p, record.normal, record.pdf);
+  record.color = m_emitter->eval(record);
 }
 
 std::string Intersection::toString() const {

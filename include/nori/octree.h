@@ -75,13 +75,6 @@ class Octree {
   /// Return a pointer to the vertex positions
   const MatrixXf& getVertexPositions() const { return m_V; }
 
-  /// Return a pointer to the vertex normals (or \c nullptr if there are none)
-  const MatrixXf& getVertexNormals() const { return m_N; }
-
-  /// Return a pointer to the texture coordinates (or \c nullptr if there are
-  /// none)
-  const MatrixXf& getVertexTexCoords() const { return m_UV; }
-
   /// Return a pointer to the triangle vertex index list
   const MatrixXu& getIndices() const { return m_F; }
 
@@ -100,8 +93,6 @@ class Octree {
 
   BoundingBox3f m_bbox;  ///< Bounding box of the mesh
   MatrixXf m_V;          ///< Vertex positions
-  MatrixXf m_N;          ///< Vertex normals
-  MatrixXf m_UV;         ///< Vertex texture coordinates
   MatrixXu m_F;          ///< Faces
   MatrixXu m_ID;         ///< Face ID's
 };

@@ -38,6 +38,7 @@ Scene::~Scene() {
 
 void Scene::activate() {
     m_accel->build();
+    m_dpdf.normalize();
 
     if (!m_integrator)
         throw NoriException("No integrator was specified!");
@@ -60,6 +61,13 @@ void Scene::addChild(NoriObject *obj) {
         case EMesh: {
                 Mesh *mesh = static_cast<Mesh *>(obj);
                 m_accel->addMesh(mesh);
+                if (mesh->isEmitter()) {
+                  m_emitter_indices.push_back(m_meshes.size());
+                  float s = 0;
+                  for (uint32_t i = 0; i < mesh->getTriangleCount(); ++i)
+                    s += mesh->surfaceArea(i);
+                  m_dpdf.append(s);
+                }
                 m_meshes.push_back(mesh);
             }
             break;
@@ -93,6 +101,12 @@ void Scene::addChild(NoriObject *obj) {
             throw NoriException("Scene::addChild(<%s>) is not supported!",
                 classTypeName(obj->getClassType()));
     }
+}
+
+void Scene::sampleEmitter(EmitterQueryRecord &record, float epsilon,
+                          const Point2f &sample) const {
+  auto idx = m_dpdf.sample(epsilon);
+  m_meshes.at(m_emitter_indices.at(idx))->sample(record, sample);
 }
 
 std::string Scene::toString() const {
