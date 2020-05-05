@@ -38,7 +38,7 @@ struct Intersection {
   /// Position of the surface intersection
   Point3f p;
   /// Unoccluded distance along the ray
-  float t;
+  float t{1e9F};
   /// UV coordinates, if any
   Point2f uv;
   /// Shading frame (based on the shading normal)

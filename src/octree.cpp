@@ -84,7 +84,7 @@ OctreeNode* buildNode(Octree* tree, uint32_t depth,
 }
 
 struct BBoxIts {
-  BBoxIts(uint32_t i, float f) : index{i}, near{f} {}
+  BBoxIts(uint32_t i, float n) : index{i}, near{n}{}
 
   bool operator<(const BBoxIts& b) const { return near < b.near; }
 
@@ -129,8 +129,8 @@ void OctreeNode::traverse(Ray3f& ray, Intersection& its, uint32_t& f,
     }
     if (dist.size() > 1) std::sort(dist.begin(), dist.end());
     for (const auto& it : dist) {
+      if (its.t < it.near) continue;
       mChildren[it.index]->traverse(ray, its, f, found, shadowRay);
-      if (found) return;
     }
 #else
     for (auto c : mChildren) {

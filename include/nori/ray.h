@@ -66,7 +66,10 @@ template <typename _PointType, typename _VectorType> struct TRay {
     /// Copy constructor
     TRay(const TRay &ray) 
      : o(ray.o), d(ray.d), dRcp(ray.dRcp),
-       mint(ray.mint), maxt(ray.maxt) { }
+          mint(ray.mint),
+          maxt(ray.maxt),
+          rowIdx(ray.rowIdx),
+		  columnIdx(ray.columnIdx) {}
 
     /// Copy a ray, but change the covered segment of the copy
     TRay(const TRay &ray, Scalar mint, Scalar maxt) 
