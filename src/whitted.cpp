@@ -36,7 +36,7 @@ class WhittedIntegrator : public Integrator {
              << "\n";
       }
 
-      return its.mesh->getEmitter()->eval(rec);
+      color += its.mesh->getEmitter()->eval(rec);
     }
 
     for (int i = 0; i < NUM_SAMPLE; ++i) {
