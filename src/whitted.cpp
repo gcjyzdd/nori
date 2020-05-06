@@ -67,9 +67,7 @@ class WhittedIntegrator : public Integrator {
       auto c = bsdf->sample(bsdfQuery, sampler->next2D());
 
       if (sampler->next1D() < pt) {
-        Ray3f newRay(ray);
-        newRay.o = its.p;
-        newRay.d = its.shFrame.toWorld(bsdfQuery.wo);
+        Ray3f newRay(its.p, its.shFrame.toWorld(bsdfQuery.wo));
         return c.array() * Li(scene, sampler, newRay) / pt;
       } else {
         return color;
