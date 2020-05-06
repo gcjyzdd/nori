@@ -104,7 +104,7 @@ bool Accel::rayIntersect(const Ray3f &ray_, Intersection &its,
       its.shFrame = Frame((bary.x() * N.col(idx0) + bary.y() * N.col(idx1) +
                            bary.z() * N.col(idx2))
                               .normalized());
-      if (its.shFrame.n.dot(ray.d) > 0) foundIntersection = false;  // backface
+      // if (its.shFrame.n.dot(ray.d) > 0) foundIntersection = false;  // backface
     } else {
       its.shFrame = its.geoFrame;
     }

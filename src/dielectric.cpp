@@ -18,11 +18,6 @@
 
 #include <nori/bsdf.h>
 #include <nori/frame.h>
-#include <pcg32.h>
-
-namespace {
-pcg32 rng;
-}  // namespace
 
 NORI_NAMESPACE_BEGIN
 
@@ -39,23 +34,36 @@ class Dielectric : public BSDF {
 
   Color3f eval(const BSDFQueryRecord &) const {
     /* Discrete BRDFs always evaluate to zero in Nori */
-    return Color3f(0.0f);
+    return Color3f(0.0F);
   }
 
   float pdf(const BSDFQueryRecord &) const {
     /* Discrete BRDFs always evaluate to zero in Nori */
-    return 0.0f;
+    return 0.0F;
   }
 
   Color3f sample(BSDFQueryRecord &bRec, const Point2f &sample) const {
     float fr = fresnel(Frame::cosTheta(bRec.wi), m_extIOR, m_intIOR);
     bRec.measure = EDiscrete;
 
-    if (rng.nextFloat() > fr) {  // reflection
+    if (sample(0) > fr) {  // refraction
 
-    } else {  // refraction
+      float etaI = m_extIOR, etaT = m_intIOR;
+      if (Frame::cosTheta(bRec.wi) < 0.0F) {
+        std::swap(etaI, etaT);
+      }
+      bRec.eta = etaI / etaI;
+      Vector3f z = bRec.eta * (Vector3f(bRec.wi(0), bRec.wi(1), 0));
+      bRec.wo = Vector3f(z(0), z(1), z(2) - std::sqrt(1.F - z.dot(z)));
+      return Color3f(1.0F) * fr;
+    } else {  //  reflection
+      // Reflection in local coordinates
+      bRec.wo = Vector3f(-bRec.wi.x(), -bRec.wi.y(), bRec.wi.z());
+
+      /* Relative index of refraction: no change */
+      bRec.eta = 1.F;
+      return Color3f(1.0F) * (1.F - fr);
     }
-    throw NoriException("Unimplemented!");
   }
 
   std::string toString() const {
