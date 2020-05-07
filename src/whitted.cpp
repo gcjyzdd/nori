@@ -31,7 +31,7 @@ class WhittedIntegrator : public Integrator {
       color += its.mesh->getEmitter()->eval(rec);
     }
 
-    if (ray.rowIdx == 363 && ray.columnIdx == 499) {
+    if (ray.rowIdx == 387 && ray.columnIdx == 296) {
       cout << "hello\n";
     }
 

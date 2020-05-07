@@ -52,17 +52,17 @@ class Dielectric : public BSDF {
       if (Frame::cosTheta(bRec.wi) < 0.0F) {
         std::swap(etaI, etaT);
       }
-      bRec.eta = etaI / etaI;
+      bRec.eta = etaI / etaT;
       Vector3f z = bRec.eta * (Vector3f(bRec.wi(0), bRec.wi(1), 0));
       bRec.wo = Vector3f(z(0), z(1), z(2) - std::sqrt(1.F - z.dot(z)));
-      return Color3f(1.0F) * fr;
+      return Color3f(1.0F) * (1.F - fr);
     } else {  //  reflection
       // Reflection in local coordinates
       bRec.wo = Vector3f(-bRec.wi.x(), -bRec.wi.y(), bRec.wi.z());
 
       /* Relative index of refraction: no change */
       bRec.eta = 1.F;
-      return Color3f(1.0F) * (1.F - fr);
+      return Color3f(1.0F) * fr;
     }
   }
 
