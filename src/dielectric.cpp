@@ -44,6 +44,7 @@ class Dielectric : public BSDF {
 
   Color3f sample(BSDFQueryRecord &bRec, const Point2f &sample) const {
     float fr = fresnel(Frame::cosTheta(bRec.wi), m_extIOR, m_intIOR);
+    if (fr > 1.0F) fr = 1.0F;
     bRec.measure = EDiscrete;
     float nz = 1.0F;
     if (sample(0) > fr) {  // refraction
@@ -64,14 +65,14 @@ class Dielectric : public BSDF {
         return Color3f(1.0F);
       }
       bRec.wo = Vector3f(z(0), z(1), -nz * std::sqrt(1.F - z.dot(z)));
-      return Color3f(1.0F) * (1.F - fr);
-    } else {  //  reflection
+      return Color3f(1.0F);  //* (1.F - fr);
+    } else {                 //  reflection
       // Reflection in local coordinates
       bRec.wo = Vector3f(-bRec.wi.x(), -bRec.wi.y(), bRec.wi.z());
 
       /* Relative index of refraction: no change */
       bRec.eta = 1.F;
-      return Color3f(1.0F) * fr;
+      return Color3f(1.0F);  // *fr;
     }
   }
 
