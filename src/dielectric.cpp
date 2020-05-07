@@ -45,16 +45,25 @@ class Dielectric : public BSDF {
   Color3f sample(BSDFQueryRecord &bRec, const Point2f &sample) const {
     float fr = fresnel(Frame::cosTheta(bRec.wi), m_extIOR, m_intIOR);
     bRec.measure = EDiscrete;
-
+    float nz = 1.0F;
     if (sample(0) > fr) {  // refraction
 
       float etaI = m_extIOR, etaT = m_intIOR;
       if (Frame::cosTheta(bRec.wi) < 0.0F) {
         std::swap(etaI, etaT);
+        nz = -1.F;  // flip the noraml when calculating vector t
       }
       bRec.eta = etaI / etaT;
-      Vector3f z = bRec.eta * (Vector3f(bRec.wi(0), bRec.wi(1), 0));
-      bRec.wo = Vector3f(z(0), z(1), z(2) - std::sqrt(1.F - z.dot(z)));
+      Vector3f z = bRec.eta * Vector3f(-bRec.wi(0), -bRec.wi(1), 0);
+      if (z.norm() > 1.F) {  // Reflection in local coordinates
+        bRec.wo = Vector3f(-bRec.wi.x(), -bRec.wi.y(), bRec.wi.z());
+
+        /* Relative index of refraction: no change */
+        bRec.eta = 1.F;
+        // full relection
+        return Color3f(1.0F);
+      }
+      bRec.wo = Vector3f(z(0), z(1), -nz * std::sqrt(1.F - z.dot(z)));
       return Color3f(1.0F) * (1.F - fr);
     } else {  //  reflection
       // Reflection in local coordinates

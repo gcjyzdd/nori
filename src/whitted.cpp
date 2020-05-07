@@ -52,7 +52,7 @@ class WhittedIntegrator : public Integrator {
       float gxy = its.shFrame.n.dot(wo) * shadowIts.shFrame.n.dot(-wo) /
                   (segLen * segLen);
       if (gxy < 0) {
-        return color; // backface
+        return color;  // backface
         cout << "error: r = " << ray.rowIdx << ", c = " << ray.columnIdx
              << ", cos thx = " << its.shFrame.n.dot(wo)
              << ", cos thy = " << shadowIts.shFrame.n.dot(-wo) << "\n";
