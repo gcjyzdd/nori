@@ -3,7 +3,7 @@
 
 NORI_NAMESPACE_BEGIN
 
-static const float OneOver4Pi = 0.25F / M_PI;
+static const float OneOver4Pi2 = 0.25F / (M_PI * M_PI);
 
 class SimpleIntegrator : public Integrator {
  public:
@@ -27,8 +27,8 @@ class SimpleIntegrator : public Integrator {
 
     /* Return the component-wise absolute
        value of the shading normal as a color */
-    float cosTheta = std::max(its.shFrame.n.dot(nd), 0.F);
-    return mColor * (cosTheta * OneOver4Pi) / d.dot(d);
+    float cosTheta = std::max(its.shFrame.toLocal(nd)(2), 0.F);
+    return mColor * (cosTheta * OneOver4Pi2) / d.dot(d);
   }
 
   std::string toString() const { return "SimpleIntegrator[]"; }
