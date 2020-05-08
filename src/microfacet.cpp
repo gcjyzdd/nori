@@ -17,6 +17,7 @@
 */
 
 #include <nori/bsdf.h>
+#include <nori/dpdf.h>
 #include <nori/frame.h>
 #include <nori/warp.h>
 
@@ -81,18 +82,29 @@ class Microfacet : public BSDF {
 
   /// Evaluate the sampling density of \ref sample() wrt. solid angles
   float pdf(const BSDFQueryRecord &bRec) const {
-    throw NoriException("MicrofacetBRDF::pdf(): not implemented!");
+    auto &wi = bRec.wi;
+    auto &wo = bRec.wo;
+    Vector3f wh = wi + wo;
+    float Jh = 0.25F / (wh.dot(wo));
+    return m_ks * Warp::squareToBeckmannPdf(wh, m_alpha) * Jh +
+           (1.F - m_ks) * wo(2) / M_PI;
   }
 
   /// Sample the BRDF
   Color3f sample(BSDFQueryRecord &bRec, const Point2f &_sample) const {
-    throw NoriException("MicrofacetBRDF::sample(): not implemented!");
+    float epsilon = _sample(0);
+    m_dpdf.sampleReuse(epsilon);
+    if (_sample(0) < m_ks) {  // specular
+      bRec.wo = Warp::squareToUniformHemisphere(_sample);
+    } else {
+      bRec.wo = Warp::squareToCosineHemisphere(_sample);
+    }
 
     // Note: Once you have implemented the part that computes the scattered
     // direction, the last part of this function should simply return the
     // BRDF value divided by the solid angle density and multiplied by the
     // cosine factor from the reflection equation, i.e.
-    // return eval(bRec) * Frame::cosTheta(bRec.wo) / pdf(bRec);
+    return eval(bRec) * Frame::cosTheta(bRec.wo) / pdf(bRec);
   }
 
   bool isDiffuse() const {
@@ -118,6 +130,7 @@ class Microfacet : public BSDF {
   float m_alpha;
   float m_intIOR, m_extIOR;
   float m_ks;
+  DiscretePDF m_dpdf;
   Color3f m_kd;
 };
 
