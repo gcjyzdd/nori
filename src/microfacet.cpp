@@ -20,6 +20,7 @@
 #include <nori/dpdf.h>
 #include <nori/frame.h>
 #include <nori/warp.h>
+#include <pcg32.h>
 
 namespace {
 float rationalFun(const nori::Vector3f &wv, const nori::Vector3f &wh,
@@ -27,7 +28,7 @@ float rationalFun(const nori::Vector3f &wv, const nori::Vector3f &wh,
   float c = wv.dot(wh) * wv(2);
   if (c <= 0) return 0;
 
-  float b = 1.F / (alpha * std::sqrt(1.F - wv(2) * wv(2)) / wv(2));
+  float b = 1.F / (alpha * nori::Frame::tanTheta(wv));
   if (b < 1.6F) {
     float b2 = b * b;
     return (3.535F * b + 2.181F * b2) / (1.F + 2.276F * b + 2.577F * b2);
@@ -35,6 +36,8 @@ float rationalFun(const nori::Vector3f &wv, const nori::Vector3f &wh,
     return 1.F;
   }
 }
+
+pcg32 rng;
 }  // namespace
 
 NORI_NAMESPACE_BEGIN
@@ -67,10 +70,16 @@ class Microfacet : public BSDF {
 
   /// Evaluate the BRDF for the given pair of directions
   Color3f eval(const BSDFQueryRecord &bRec) const {
+    /* This is a smooth BRDF -- return zero if the measure
+       is wrong, or when queried for illumination on the backside */
+    if (bRec.measure != ESolidAngle || Frame::cosTheta(bRec.wi) <= 0 ||
+        Frame::cosTheta(bRec.wo) <= 0)
+      return Color3f(0.0F);
+
     auto &wi = bRec.wi;
     auto &wo = bRec.wo;
     Vector3f wh = wi + wo;
-    wh = wh / (wh.dot(wh));
+    wh.normalize();
 
     float D = Warp::squareToBeckmannPdf(wh, m_alpha);
     float F = fresnel(wh.dot(bRec.wi), m_extIOR, m_intIOR);
@@ -82,9 +91,16 @@ class Microfacet : public BSDF {
 
   /// Evaluate the sampling density of \ref sample() wrt. solid angles
   float pdf(const BSDFQueryRecord &bRec) const {
+    /* This is a smooth BRDF -- return zero if the measure
+       is wrong, or when queried for illumination on the backside */
+    if (bRec.measure != ESolidAngle || Frame::cosTheta(bRec.wi) <= 0 ||
+        Frame::cosTheta(bRec.wo) <= 0)
+      return 0.0F;
+
     auto &wi = bRec.wi;
     auto &wo = bRec.wo;
     Vector3f wh = wi + wo;
+    wh.normalize();
     float Jh = 0.25F / (wh.dot(wo));
     return m_ks * Warp::squareToBeckmannPdf(wh, m_alpha) * Jh +
            (1.F - m_ks) * wo(2) / M_PI;
@@ -92,13 +108,17 @@ class Microfacet : public BSDF {
 
   /// Sample the BRDF
   Color3f sample(BSDFQueryRecord &bRec, const Point2f &_sample) const {
-    float epsilon = _sample(0);
-    m_dpdf.sampleReuse(epsilon);
-    if (_sample(0) < m_ks) {  // specular
-      bRec.wo = Warp::squareToUniformHemisphere(_sample);
+    if (Frame::cosTheta(bRec.wi) <= 0) return Color3f(0.0F);
+
+    bRec.eta = 1.0F;
+    bRec.measure = nori::ESolidAngle;
+    if (rng.nextFloat() < m_ks) {  // specular
+      Vector3f n = Warp::squareToBeckmann(_sample, m_alpha);
+      bRec.wo = 2.F * bRec.wi.dot(n) * n - bRec.wi;
     } else {
       bRec.wo = Warp::squareToCosineHemisphere(_sample);
     }
+    if (Frame::cosTheta(bRec.wo) <= 0) return Color3f(0.0F);
 
     // Note: Once you have implemented the part that computes the scattered
     // direction, the last part of this function should simply return the
@@ -130,7 +150,6 @@ class Microfacet : public BSDF {
   float m_alpha;
   float m_intIOR, m_extIOR;
   float m_ks;
-  DiscretePDF m_dpdf;
   Color3f m_kd;
 };
 
