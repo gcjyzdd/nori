@@ -29,6 +29,7 @@ class EmitterSamplingIntegrator : public Integrator {
     float pdf = 1.0F;
     float eta = 1.F;
     int paths = 0;
+    bool lastSpecular = false;
     Ray3f ray1(ray);
     while (true) {
       /* Find the surface that is visible in the requested direction */
@@ -38,13 +39,17 @@ class EmitterSamplingIntegrator : public Integrator {
         break;
       }
 
+      EmitterQueryRecord rec;
+      if (its.mesh->isEmitter() && lastSpecular) {
+        emission += its.mesh->getEmitter()->eval(rec).array() * color.array();
+      }
+
       if (ray.rowIdx == 362 && ray.columnIdx == 284) {
         // cout << "hello\n";
       }
 
       auto bsdf = its.mesh->getBSDF();
       if (bsdf->isDiffuse()) {
-        EmitterQueryRecord rec;
         scene->sampleEmitter(rec, sampler->next1D(), sampler->next2D());
         Point3f seg = rec.p - its.p;
         float segLen = seg.norm();
@@ -64,6 +69,9 @@ class EmitterSamplingIntegrator : public Integrator {
             emission += color.array() * Lr.array() / (rec.pdf);
           }
         }
+        lastSpecular = false;
+      } else {
+        lastSpecular = true;
       }
 
       BSDFQueryRecord bsdfQuery(its.shFrame.toLocal(-ray1.d));
