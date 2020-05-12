@@ -24,7 +24,7 @@ class MisIntegrator : public Integrator {
       return Color3f(0.0F);
     }
 
-    Color3f color(1.F);
+    Color3f throughput(1.F);
     Color3f emission(0.F);
     float pdf = 1.0F;
     float eta = 1.F;
@@ -40,29 +40,29 @@ class MisIntegrator : public Integrator {
       /* Find the surface that is visible in the requested direction */
       Intersection its;
       if (!scene->rayIntersect(ray1, its)) {
-        color = Color3f(0.0F);
+        throughput = Color3f(0.0F);
         break;
       }
 
       if (its.mesh->isEmitter()) {
         EmitterQueryRecord rec;
-        if (first) {
-          emission += its.mesh->getEmitter()->eval(rec).array() * color.array();
+        if (lastSpecular || first) {
+          emission +=
+              its.mesh->getEmitter()->eval(rec).array() * throughput.array();
         } else {
           rec.mesh = its.mesh;
           rec.triIndex = its.face;
           rec.pdf = scene->pdfEmitter(rec);
           auto lc = its.mesh->getEmitter()->eval(rec);
 
-          float nx = prevIts.shFrame.n.dot(ray1.d);
           float ny = its.shFrame.n.dot(-ray1.d);
-          float r2 = its.t * its.t;
-          float gxy = nx * ny / r2;
-          if (gxy > 0) {
-            Color3f Lr = prevAlbedo.array() * lc.array() * gxy;
+          if (ny > 0) {
+            float r2 = its.t * its.t;
+
             float sa = ny / (rec.pdf * r2);
             pLight = 1.F / sa;
-            emission += color.array() * Lr.array() * pBrdf / (pBrdf + pLight);
+            emission +=
+                throughput.array() * lc.array() * pBrdf / (pBrdf + pLight);
           }
         }
       }
@@ -94,12 +94,12 @@ class MisIntegrator : public Integrator {
                                         its.shFrame.toLocal(wo),
                                         EMeasure::ESolidAngle);
               auto albedo = bsdf->eval(bsdfQuery);
-              float sa = ny / (scene->pdfEmitter(rec) * r2);
+              float sa = ny / (rec.pdf * r2);
               pLight = 1.F / sa;
               pBrdf = bsdf->pdf(bsdfQuery);
               Color3f Lr = albedo.array() * rec.color.array() * gxy;
-              emission +=
-                  color.array() * Lr.array() * pLight / (pBrdf + pLight);
+              float wl = pLight / (pBrdf + pLight);
+              emission += throughput.array() * Lr.array() / rec.pdf * wl;
             }
           }
         }
@@ -114,16 +114,15 @@ class MisIntegrator : public Integrator {
       prevAlbedo = bsdf->eval(bsdfQuery);
 
       eta *= bsdfQuery.eta;
-      float pt =
-          paths <= MIN_PATH
-              ? 1.F
-              : std::min(0.99F, (emission + color).maxCoeff() * eta * eta);
+      float pt = paths <= MIN_PATH
+                     ? 1.F
+                     : std::min(0.99F, throughput.maxCoeff() * eta * eta);
 
       if (sampler->next1D() < pt) {
-        color = color.array() * c.array() / pt;
+        throughput = throughput.array() * c.array() / pt;
         ray1 = Ray3f(its.p, its.shFrame.toWorld(bsdfQuery.wo));
       } else {
-        color = Color3f(0.F);
+        throughput = Color3f(0.F);
         break;
       }
       ++paths;
