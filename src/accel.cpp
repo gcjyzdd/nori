@@ -81,7 +81,7 @@ bool Accel::rayIntersect(const Ray3f &ray_, Intersection &its,
     uint32_t idx0 = F(0, f), idx1 = F(1, f), idx2 = F(2, f);
 
     Point3f p0 = V.col(idx0), p1 = V.col(idx1), p2 = V.col(idx2);
-
+    its.face = f;
     /* Compute the intersection positon accurately
        using barycentric coordinates */
     its.p = bary.x() * p0 + bary.y() * p1 + bary.z() * p2;

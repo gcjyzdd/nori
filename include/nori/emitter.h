@@ -22,6 +22,8 @@
 
 NORI_NAMESPACE_BEGIN
 
+class Mesh;
+
 struct EmitterQueryRecord {
   /// Outgoing direction (in the local frame)
   Point3f p;
@@ -31,6 +33,10 @@ struct EmitterQueryRecord {
   float pdf;
 
   Color3f color;
+
+  const Mesh* mesh{nullptr};
+
+  uint32_t triIndex{0};
 };
 
 /**

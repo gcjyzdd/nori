@@ -35,6 +35,8 @@ NORI_NAMESPACE_BEGIN
  * computations).
  */
 struct Intersection {
+  /// Index of the interseection surface
+  uint32_t face;
   /// Position of the surface intersection
   Point3f p;
   /// Unoccluded distance along the ray
@@ -157,12 +159,12 @@ class Mesh : public NoriObject {
   /// Return a human-readable summary of this instance
   std::string toString() const;
 
-  void unitSquare2tri(const Point2f &sample, Point3f &p, Point3f &n,
-                      float &f) const;
+  void unitSquare2tri(const Point2f &sample, Point3f &p, Point3f &n, float &f,
+                      uint32_t &idx) const;
 
   void sample(EmitterQueryRecord &record, const Point2f &sample);
 
-  float pdf(const Point3f &) const { return m_reciprocal_area; }
+  float pdf(const uint32_t&) const { return m_reciprocal_area; }
 
   /**
    * \brief Return the type of object (i.e. Mesh/BSDF/etc.)

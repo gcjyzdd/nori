@@ -63,6 +63,7 @@ void Scene::addChild(NoriObject *obj) {
                 m_accel->addMesh(mesh);
                 if (mesh->isEmitter()) {
                   m_emitter_indices.push_back(m_meshes.size());
+                  m_emitters.push_back(mesh);
                   // float s = 0;
                   // for (uint32_t i = 0; i < mesh->getTriangleCount(); ++i)
                   //   s += mesh->surfaceArea(i);
@@ -108,6 +109,13 @@ void Scene::sampleEmitter(EmitterQueryRecord &record, float epsilon,
   auto idx = m_dpdf.sample(epsilon);
   m_meshes.at(m_emitter_indices.at(idx))->sample(record, sample);
   record.pdf *= m_dpdf[idx];
+  record.mesh = m_meshes.at(m_emitter_indices.at(idx));
+}
+
+float Scene::pdfEmitter(const EmitterQueryRecord &record) const {
+  auto idx = std::distance(m_emitters.begin(),
+                    find(m_emitters.begin(), m_emitters.end(), record.mesh));
+  return m_dpdf[idx] * m_emitters.at(idx)->pdf(record.triIndex);
 }
 
 std::string Scene::toString() const {

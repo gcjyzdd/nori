@@ -3,6 +3,7 @@
 #include <nori/integrator.h>
 #include <nori/sampler.h>
 #include <nori/scene.h>
+#include <nori/mesh.h>
 #include <pcg32.h>
 
 namespace {
@@ -13,10 +14,9 @@ const int MIN_PATH = 3;
 
 NORI_NAMESPACE_BEGIN
 
-class EmitterSamplingIntegrator : public Integrator {
+class MisIntegrator : public Integrator {
  public:
-  EmitterSamplingIntegrator(
-      const PropertyList &props) { /* No parameters this time */
+  MisIntegrator(const PropertyList &props) { /* No parameters this time */
   }
 
   Color3f Li(const Scene *scene, Sampler *sampler, const Ray3f &ray) const {
@@ -30,6 +30,8 @@ class EmitterSamplingIntegrator : public Integrator {
     float eta = 1.F;
     int paths = 0;
     bool lastSpecular = true;
+    float pLight = 0;
+    float pBrdf = 0;
     Ray3f ray1(ray);
     while (true) {
       /* Find the surface that is visible in the requested direction */
@@ -39,9 +41,14 @@ class EmitterSamplingIntegrator : public Integrator {
         break;
       }
 
-      EmitterQueryRecord rec;
       if (its.mesh->isEmitter() && lastSpecular) {
-        emission += its.mesh->getEmitter()->eval(rec).array() * color.array();
+        EmitterQueryRecord rec;
+        rec.mesh = its.mesh;
+        rec.triIndex = its.face;
+        pLight = scene->pdfEmitter(rec) * its.shFrame.n.dot(-ray1.d) /
+                 (its.t * its.t);
+        emission += its.mesh->getEmitter()->eval(rec).array() * color.array() *
+                    pLight / (pLight + pBrdf);
       }
 
       if (ray.rowIdx == 362 && ray.columnIdx == 284) {
@@ -50,6 +57,7 @@ class EmitterSamplingIntegrator : public Integrator {
 
       auto bsdf = its.mesh->getBSDF();
       if (bsdf->isDiffuse()) {
+        EmitterQueryRecord rec;
         scene->sampleEmitter(rec, sampler->next1D(), sampler->next2D());
         Point3f seg = rec.p - its.p;
         float segLen = seg.norm();
@@ -61,14 +69,18 @@ class EmitterSamplingIntegrator : public Integrator {
               (segLen - shadowIts.t) <= eps) {
             float ny = its.shFrame.n.dot(wo);
             float nx = shadowIts.shFrame.n.dot(-wo);
-            float gxy = nx * ny / (segLen * segLen);
+            float r2 = segLen * segLen;
+            float gxy = nx * ny / r2;
             if (gxy > 0) {
               BSDFQueryRecord bsdfQuery(its.shFrame.toLocal(-ray1.d),
                                         its.shFrame.toLocal(wo),
                                         EMeasure::ESolidAngle);
               auto albedo = bsdf->eval(bsdfQuery);
+              pLight = scene->pdfEmitter(rec) * ny / r2;
+              pBrdf = bsdf->pdf(bsdfQuery);
               Color3f Lr = albedo.array() * rec.color.array() * gxy;
-              emission += color.array() * Lr.array() / (rec.pdf);
+              emission += color.array() * Lr.array() / (rec.pdf) * pBrdf /
+                          (pBrdf + pLight);
             }
           }
         }
@@ -79,6 +91,7 @@ class EmitterSamplingIntegrator : public Integrator {
 
       BSDFQueryRecord bsdfQuery(its.shFrame.toLocal(-ray1.d));
       auto c = bsdf->sample(bsdfQuery, sampler->next2D());
+      pBrdf = bsdf->pdf(bsdfQuery.wo);
 
       eta *= bsdfQuery.eta;
       float pt =
@@ -102,8 +115,10 @@ class EmitterSamplingIntegrator : public Integrator {
     return emission;
   }
 
-  std::string toString() const { return "NextEventEstimationSamplingIntegrator[]"; }
+  std::string toString() const {
+    return "MultipleImportanceSamplingIntegrator[]";
+  }
 };
 
-NORI_REGISTER_CLASS(EmitterSamplingIntegrator, "path_ems");
+NORI_REGISTER_CLASS(MisIntegrator, "path_mis");
 NORI_NAMESPACE_END

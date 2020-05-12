@@ -154,8 +154,8 @@ std::string Mesh::toString() const {
 }
 
 void Mesh::unitSquare2tri(const Point2f &sample, Point3f &p, Point3f &n,
-                          float &f) const {
-  auto idx = m_dpdf.sample(rng.nextFloat());
+                          float &f, uint32_t &idx) const {
+  idx = m_dpdf.sample(rng.nextFloat());
   f = m_reciprocal_area;
   auto c = m_F.col(idx);
 
@@ -178,7 +178,7 @@ void Mesh::unitSquare2tri(const Point2f &sample, Point3f &p, Point3f &n,
 }
 
 void Mesh::sample(EmitterQueryRecord &record, const Point2f &sample) {
-  unitSquare2tri(sample, record.p, record.normal, record.pdf);
+  unitSquare2tri(sample, record.p, record.normal, record.pdf, record.triIndex);
   record.color = m_emitter->eval(record);
 }
 

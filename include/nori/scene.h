@@ -117,6 +117,8 @@ public:
 	void sampleEmitter(EmitterQueryRecord &record, float epsilon,
                            const Point2f &sample) const;
 
+	float pdfEmitter(const EmitterQueryRecord &record)const;
+
     /// Return a string summary of the scene (for debugging purposes)
     std::string toString() const;
 
@@ -127,6 +129,7 @@ private:
     Sampler *m_sampler = nullptr;
     Camera *m_camera = nullptr;
     Accel *m_accel = nullptr;
+    std::vector<Mesh *> m_emitters;
     std::vector<uint32_t> m_emitter_indices;  ///< indices of emitters
     DiscretePDF m_dpdf;                       ///< DiscretePDF of emitters
 };
