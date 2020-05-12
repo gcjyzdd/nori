@@ -1,9 +1,9 @@
 #include <nori/bsdf.h>
 #include <nori/emitter.h>
 #include <nori/integrator.h>
+#include <nori/mesh.h>
 #include <nori/sampler.h>
 #include <nori/scene.h>
-#include <nori/mesh.h>
 #include <pcg32.h>
 
 namespace {
@@ -31,8 +31,11 @@ class MisIntegrator : public Integrator {
     int paths = 0;
     bool lastSpecular = true;
     float pLight = 0;
-    float pBrdf = 0;
+    float pBrdf = 1;
+    bool first = true;
     Ray3f ray1(ray);
+    Intersection prevIts;
+    Color3f prevAlbedo;
     while (true) {
       /* Find the surface that is visible in the requested direction */
       Intersection its;
@@ -41,22 +44,37 @@ class MisIntegrator : public Integrator {
         break;
       }
 
-      if (its.mesh->isEmitter() && lastSpecular) {
+      if (its.mesh->isEmitter()) {
         EmitterQueryRecord rec;
-        rec.mesh = its.mesh;
-        rec.triIndex = its.face;
-        pLight = scene->pdfEmitter(rec) * its.shFrame.n.dot(-ray1.d) /
-                 (its.t * its.t);
-        emission += its.mesh->getEmitter()->eval(rec).array() * color.array() *
-                    pLight / (pLight + pBrdf);
-      }
+        if (first) {
+          emission += its.mesh->getEmitter()->eval(rec).array() * color.array();
+        } else {
+          rec.mesh = its.mesh;
+          rec.triIndex = its.face;
+          rec.pdf = scene->pdfEmitter(rec);
+          auto lc = its.mesh->getEmitter()->eval(rec);
 
-      if (ray.rowIdx == 362 && ray.columnIdx == 284) {
-        // cout << "hello\n";
+          float nx = prevIts.shFrame.n.dot(ray1.d);
+          float ny = its.shFrame.n.dot(-ray1.d);
+          float r2 = its.t * its.t;
+          float gxy = nx * ny / r2;
+          if (gxy > 0) {
+            Color3f Lr = prevAlbedo.array() * lc.array() * gxy;
+            float sa = ny / (rec.pdf * r2);
+            pLight = 1.F / sa;
+            emission += color.array() * Lr.array() * pBrdf / (pBrdf + pLight);
+          }
+        }
+      }
+      first = false;
+
+      if (ray.rowIdx == 257 && ray.columnIdx == 456) {
+        cout << "hello\n";
       }
 
       auto bsdf = its.mesh->getBSDF();
       if (bsdf->isDiffuse()) {
+        // sample a light source
         EmitterQueryRecord rec;
         scene->sampleEmitter(rec, sampler->next1D(), sampler->next2D());
         Point3f seg = rec.p - its.p;
@@ -76,11 +94,12 @@ class MisIntegrator : public Integrator {
                                         its.shFrame.toLocal(wo),
                                         EMeasure::ESolidAngle);
               auto albedo = bsdf->eval(bsdfQuery);
-              pLight = scene->pdfEmitter(rec) * ny / r2;
+              float sa = ny / (scene->pdfEmitter(rec) * r2);
+              pLight = 1.F / sa;
               pBrdf = bsdf->pdf(bsdfQuery);
               Color3f Lr = albedo.array() * rec.color.array() * gxy;
-              emission += color.array() * Lr.array() / (rec.pdf) * pBrdf /
-                          (pBrdf + pLight);
+              emission +=
+                  color.array() * Lr.array() * pLight / (pBrdf + pLight);
             }
           }
         }
@@ -91,7 +110,8 @@ class MisIntegrator : public Integrator {
 
       BSDFQueryRecord bsdfQuery(its.shFrame.toLocal(-ray1.d));
       auto c = bsdf->sample(bsdfQuery, sampler->next2D());
-      pBrdf = bsdf->pdf(bsdfQuery.wo);
+      pBrdf = bsdf->pdf(bsdfQuery);
+      prevAlbedo = bsdf->eval(bsdfQuery);
 
       eta *= bsdfQuery.eta;
       float pt =
@@ -107,6 +127,7 @@ class MisIntegrator : public Integrator {
         break;
       }
       ++paths;
+      prevIts = its;
     }
 
     /* Return the component-wise absolute
