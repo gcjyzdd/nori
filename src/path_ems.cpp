@@ -63,12 +63,12 @@ class EmitterSamplingIntegrator : public Integrator {
             float nx = shadowIts.shFrame.n.dot(-wo);
             float gxy = nx * ny / (segLen * segLen);
             if (gxy > 0) {
-              BSDFQueryRecord bsdfQuery(its.shFrame.toLocal(-ray.d),
+              BSDFQueryRecord bsdfQuery(its.shFrame.toLocal(-ray1.d),
                                         its.shFrame.toLocal(wo),
                                         EMeasure::ESolidAngle);
               auto albedo = bsdf->eval(bsdfQuery);
               Color3f Lr = albedo.array() * rec.color.array() * gxy;
-              emission += color.array() * Lr.array() / (rec.pdf);  // * 1.44F;
+              emission += color.array() * Lr.array() / (rec.pdf);
             }
           }
         }
@@ -81,9 +81,10 @@ class EmitterSamplingIntegrator : public Integrator {
       auto c = bsdf->sample(bsdfQuery, sampler->next2D());
 
       eta *= bsdfQuery.eta;
-      float pt = paths <= MIN_PATH
-                     ? 1.F
-                     : std::min(0.99F, (color).maxCoeff() * eta * eta);
+      float pt =
+          paths <= MIN_PATH
+              ? 1.F
+              : std::min(0.99F, (emission + color).maxCoeff() * eta * eta);
 
       if (sampler->next1D() < pt) {
         color = color.array() * c.array() / pt;
