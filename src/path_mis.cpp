@@ -68,10 +68,6 @@ class MisIntegrator : public Integrator {
       }
       first = false;
 
-      if (ray.rowIdx == 257 && ray.columnIdx == 456) {
-        cout << "hello\n";
-      }
-
       auto bsdf = its.mesh->getBSDF();
       if (bsdf->isDiffuse()) {
         // sample a light source
@@ -85,8 +81,8 @@ class MisIntegrator : public Integrator {
           Intersection shadowIts;
           if (!scene->rayIntersect(shadowRay, shadowIts) ||
               (segLen - shadowIts.t) <= eps) {
-            float ny = its.shFrame.n.dot(wo);
-            float nx = shadowIts.shFrame.n.dot(-wo);
+            float nx = its.shFrame.n.dot(wo);
+            float ny = shadowIts.shFrame.n.dot(-wo);
             float r2 = segLen * segLen;
             float gxy = nx * ny / r2;
             if (gxy > 0) {
